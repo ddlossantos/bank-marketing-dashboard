@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import json
+import logging
 from functools import lru_cache
 from pathlib import Path
 
+import joblib
 import numpy as np
 import pandas as pd
 import plotly.express as px
@@ -19,6 +21,7 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 BANK_DATA_PATH = PROJECT_ROOT / "data" / "bank" / "bank-full.csv"
+MODEL_ARTIFACT_PATH = PROJECT_ROOT / "dashboard" / "model_artifacts" / "balance_regression_model.joblib"
 MAP_GEOJSON_PATH = PROJECT_ROOT / "data" / "map" / "distritos_inec.geojson"
 MAP_PREPARED_GEOJSON_PATH = PROJECT_ROOT / "data" / "map" / "distritos_inec_prepared.geojson"
 MAP_VALUES_PATH = PROJECT_ROOT / "data" / "map" / "poblacion_distritos_inec_2023.json"
@@ -31,6 +34,14 @@ COLOR_ACCENT = "#19a0a1"
 COLOR_MUTED = "#526070"
 COLOR_YES = "#19a0a1"
 COLOR_NO = "#d95f59"
+logger = logging.getLogger(__name__)
+
+DEFAULT_MODEL_METRICS = {
+    "r2_train": 0.513998,
+    "r2_test": 0.033714,
+    "mae_test": 1534.954638,
+    "rmse_test": 3076.763544,
+}
 
 
 def clean_label(value: str | float | int | None) -> str:
@@ -80,8 +91,7 @@ def make_preprocessor(features: pd.DataFrame) -> ColumnTransformer:
     )
 
 
-@lru_cache(maxsize=1)
-def train_regression_model():
+def build_regression_model():
     df = load_modeling_data()
     target = "balance"
     features = df.drop(columns=[target, "y"])
@@ -115,6 +125,21 @@ def train_regression_model():
         "rmse_test": float(np.sqrt(mean_squared_error(y_test, pred_test))),
     }
     return model, metrics
+
+
+@lru_cache(maxsize=1)
+def load_regression_model():
+    if not MODEL_ARTIFACT_PATH.exists():
+        raise FileNotFoundError(
+            f"No se encontro el modelo preentrenado en {MODEL_ARTIFACT_PATH}. "
+            "Genere el artefacto con: python -m dashboard.build_model_artifact"
+        )
+
+    artifact = joblib.load(MODEL_ARTIFACT_PATH)
+    if isinstance(artifact, dict) and "model" in artifact:
+        return artifact["model"], artifact.get("metrics", DEFAULT_MODEL_METRICS)
+
+    return artifact, DEFAULT_MODEL_METRICS
 
 
 @lru_cache(maxsize=1)
@@ -341,12 +366,7 @@ def selected_district_text(click_data, variable_id: int = 179):
 
 
 bank_df = load_bank_data()
-model_metrics = {
-    "r2_train": 0.513998,
-    "r2_test": 0.033714,
-    "mae_test": 1534.954638,
-    "rmse_test": 3076.763544,
-}
+model_metrics = DEFAULT_MODEL_METRICS
 geojson_map, district_table, geob_meta, default_map_variable = load_map_data(179)
 map_variable_map, map_variable_options = load_map_variables()
 
@@ -637,7 +657,9 @@ def update_map_section(variable_id, click_data):
     Input("p-poutcome", "value"),
 )
 def predict_balance(n_clicks, age, job, marital, education, default, housing, loan, contact, day, month, duration, campaign, pdays, previous, poutcome):
-    model, _ = train_regression_model()
+    if any(value is None for value in [age, day, duration, campaign, pdays, previous]):
+        return "Complete los valores numericos para calcular el balance."
+
     instance = pd.DataFrame(
         [
             {
@@ -659,7 +681,13 @@ def predict_balance(n_clicks, age, job, marital, education, default, housing, lo
             }
         ]
     )
-    prediction = float(model.predict(instance)[0])
+    try:
+        model, _ = load_regression_model()
+        prediction = float(model.predict(instance)[0])
+    except Exception:
+        logger.exception("No se pudo calcular la prediccion de balance")
+        return "No se pudo calcular el balance en este momento. Revise los logs del servidor."
+
     prefix = "Predicción inicial" if not n_clicks else "Balance estimado"
     return f"{prefix}: {prediction:,.0f}"
 

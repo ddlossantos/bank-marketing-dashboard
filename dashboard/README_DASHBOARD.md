@@ -23,6 +23,20 @@ Luego abrir:
 http://127.0.0.1:8050
 ```
 
+## Modelo de balance
+
+La app carga un modelo preentrenado desde:
+
+```text
+dashboard/model_artifacts/balance_regression_model.joblib
+```
+
+Si cambian los datos o el entrenamiento, regenerar el artefacto con:
+
+```powershell
+python -m dashboard.build_model_artifact
+```
+
 ## Cumplimiento del entregable
 
 - Mas de 4 graficas de analisis:

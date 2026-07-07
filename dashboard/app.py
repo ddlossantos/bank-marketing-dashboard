@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from dash import Dash, Input, Output, State, dcc, html
+from dash import Dash, Input, Output, dcc, html
 from sklearn.compose import ColumnTransformer
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.impute import SimpleImputer
@@ -620,21 +620,21 @@ def update_map_section(variable_id, click_data):
 @app.callback(
     Output("prediction-output", "children"),
     Input("predict-button", "n_clicks"),
-    State("p-age", "value"),
-    State("p-job", "value"),
-    State("p-marital", "value"),
-    State("p-education", "value"),
-    State("p-default", "value"),
-    State("p-housing", "value"),
-    State("p-loan", "value"),
-    State("p-contact", "value"),
-    State("p-day", "value"),
-    State("p-month", "value"),
-    State("p-duration", "value"),
-    State("p-campaign", "value"),
-    State("p-pdays", "value"),
-    State("p-previous", "value"),
-    State("p-poutcome", "value"),
+    Input("p-age", "value"),
+    Input("p-job", "value"),
+    Input("p-marital", "value"),
+    Input("p-education", "value"),
+    Input("p-default", "value"),
+    Input("p-housing", "value"),
+    Input("p-loan", "value"),
+    Input("p-contact", "value"),
+    Input("p-day", "value"),
+    Input("p-month", "value"),
+    Input("p-duration", "value"),
+    Input("p-campaign", "value"),
+    Input("p-pdays", "value"),
+    Input("p-previous", "value"),
+    Input("p-poutcome", "value"),
 )
 def predict_balance(n_clicks, age, job, marital, education, default, housing, loan, contact, day, month, duration, campaign, pdays, previous, poutcome):
     model, _ = train_regression_model()

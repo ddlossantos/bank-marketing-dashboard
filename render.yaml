@@ -2,6 +2,6 @@ services:
   - type: web
     name: bank-marketing-dashboard
     env: python
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install -r requirements-pythonanywhere.txt
     startCommand: gunicorn dashboard.app:server
     plan: free

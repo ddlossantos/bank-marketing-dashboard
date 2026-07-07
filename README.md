@@ -54,7 +54,7 @@ http://127.0.0.1:8050
 Para publicarlo en Render puede usarse `render.yaml`, o configurar manualmente:
 
 - Build command: `pip install -r requirements.txt`
-- Start command: `gunicorn dashboard.app:server`
+- Start command: `gunicorn dashboard.app:server --workers 1 --timeout 120`
 
 ## Instalar en PythonAnywhere
 

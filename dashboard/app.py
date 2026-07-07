@@ -341,7 +341,12 @@ def selected_district_text(click_data, variable_id: int = 179):
 
 
 bank_df = load_bank_data()
-model, model_metrics = train_regression_model()
+model_metrics = {
+    "r2_train": 0.513998,
+    "r2_test": 0.033714,
+    "mae_test": 1534.954638,
+    "rmse_test": 3076.763544,
+}
 geojson_map, district_table, geob_meta, default_map_variable = load_map_data(179)
 map_variable_map, map_variable_options = load_map_variables()
 
@@ -632,6 +637,7 @@ def update_map_section(variable_id, click_data):
     State("p-poutcome", "value"),
 )
 def predict_balance(n_clicks, age, job, marital, education, default, housing, loan, contact, day, month, duration, campaign, pdays, previous, poutcome):
+    model, _ = train_regression_model()
     instance = pd.DataFrame(
         [
             {

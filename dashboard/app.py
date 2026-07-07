@@ -20,6 +20,7 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 BANK_DATA_PATH = PROJECT_ROOT / "data" / "bank" / "bank-full.csv"
 MAP_GEOJSON_PATH = PROJECT_ROOT / "data" / "map" / "distritos_inec.geojson"
+MAP_PREPARED_GEOJSON_PATH = PROJECT_ROOT / "data" / "map" / "distritos_inec_prepared.geojson"
 MAP_VALUES_PATH = PROJECT_ROOT / "data" / "map" / "poblacion_distritos_inec_2023.json"
 MAP_VARIABLES_PATH = PROJECT_ROOT / "data" / "map" / "inec_district_variables_selected.json"
 MAP_VALUE_DIR = PROJECT_ROOT / "data" / "map"
@@ -118,15 +119,9 @@ def train_regression_model():
 
 @lru_cache(maxsize=1)
 def load_map_base():
-    import geopandas as gpd
-
-    districts = gpd.read_file(MAP_GEOJSON_PATH)
-    districts["join_code"] = districts["PROV_ID"].astype(str) + "_" + districts["DIST_ID"].astype(str)
-    districts["district_name"] = districts["DIST_NOMB"].str.title() + ", " + districts["PROV_NOMB"].str.title()
-    districts["area_km2"] = districts["ÁREA"] / 1_000_000
-    districts = districts.to_crs(epsg=4326)
+    geojson = json.loads(MAP_PREPARED_GEOJSON_PATH.read_text(encoding="utf-8"))
     metadata = json.loads(GEOB_METADATA_PATH.read_text(encoding="utf-8"))
-    return districts, metadata
+    return geojson, metadata
 
 
 @lru_cache(maxsize=1)
@@ -141,49 +136,22 @@ def load_map_variables() -> tuple[dict[int, dict], list[dict]]:
 
 @lru_cache(maxsize=16)
 def load_map_data(variable_id: int = 179):
-    districts, metadata = load_map_base()
+    geojson, metadata = load_map_base()
     variable_map, _ = load_map_variables()
     variable = variable_map.get(int(variable_id), variable_map[179])
-    values_path = MAP_VALUE_DIR / f"inec_distrito_variable_{int(variable['id'])}.json"
-    values = pd.DataFrame(json.loads(values_path.read_text(encoding="utf-8")))
-    values = values[(values["is_total"] == False) & values["id_distrito"].notna()].copy()
-    if "texto_choropleth" in values.columns:
-        values = values[values["texto_choropleth"].isna()].copy()
-    values["join_code"] = values["id_provincia"].astype(str) + "_" + values["id_distrito"].astype(str)
-    values["value"] = pd.to_numeric(values["valor"], errors="coerce")
+    table_path = MAP_VALUE_DIR / f"map_table_variable_{int(variable['id'])}.json"
+    table = pd.DataFrame(json.loads(table_path.read_text(encoding="utf-8")))
 
-    merged = districts.merge(
-        values[["join_code", "value", "anio_referencia", "fuente", "unidad_medida", "nombre"]],
-        on="join_code",
-        how="left",
-    )
-    merged["value"] = merged["value"].fillna(0)
-    merged["density_proxy"] = merged["value"] / merged["area_km2"]
-    merged["variable_name"] = variable["nombre"]
-    merged["unit"] = variable.get("unidad_medida") or ""
-    merged["source"] = variable.get("fuente") or values["fuente"].dropna().iloc[0]
-    merged["year"] = variable.get("anio_referencia") or values["anio_referencia"].dropna().iloc[0]
-    merged["is_percentage"] = bool(variable.get("is_porcentaje"))
+    value_lookup = table.set_index("join_code")["value"].to_dict()
+    unit = variable.get("unidad_medida") or ""
+    variable_name = variable["nombre"]
+    geojson = json.loads(json.dumps(geojson))
+    for feature in geojson["features"]:
+        join_code = feature["properties"].get("join_code")
+        feature["properties"]["value"] = value_lookup.get(join_code, 0)
+        feature["properties"]["unit"] = unit
+        feature["properties"]["variable_name"] = variable_name
 
-    geojson = json.loads(merged.to_json())
-    table = pd.DataFrame(
-        merged.drop(columns="geometry")[
-            [
-                "join_code",
-                "district_name",
-                "PROV_NOMB",
-                "DIST_NOMB",
-                "value",
-                "density_proxy",
-                "area_km2",
-                "variable_name",
-                "unit",
-                "source",
-                "year",
-                "is_percentage",
-            ]
-        ]
-    )
     return geojson, table, metadata, variable
 
 

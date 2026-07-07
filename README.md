@@ -56,6 +56,16 @@ Para publicarlo en Render puede usarse `render.yaml`, o configurar manualmente:
 - Build command: `pip install -r requirements.txt`
 - Start command: `gunicorn dashboard.app:server`
 
+## Instalar en PythonAnywhere
+
+PythonAnywhere puede quedarse sin cuota si se instalan librerias pesadas del notebook. Para publicar solo el dashboard, usa:
+
+```bash
+pip install -r requirements-pythonanywhere.txt
+```
+
+El dashboard usa archivos geograficos preparados en `data/map/`, por lo que no necesita instalar GeoPandas en el servidor. GeoPandas se uso durante la preparacion local de los datos del mapa.
+
 ## Nota sobre datos faltantes
 
 El dataset no trae valores faltantes explicitos segun UCI. Sin embargo, contiene categorias `unknown` en algunas columnas. Para cumplir el analisis solicitado, estas categorias se trataran como datos no informados y se convertiran a `NaN` durante la limpieza.

@@ -5,23 +5,15 @@ import logging
 from functools import lru_cache
 from pathlib import Path
 
-import joblib
 import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from dash import Dash, Input, Output, dcc, html
-from sklearn.compose import ColumnTransformer
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.impute import SimpleImputer
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-from sklearn.model_selection import train_test_split
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 BANK_DATA_PATH = PROJECT_ROOT / "data" / "bank" / "bank-full.csv"
-MODEL_ARTIFACT_PATH = PROJECT_ROOT / "dashboard" / "model_artifacts" / "balance_regression_model.joblib"
+MODEL_ARTIFACT_PATH = PROJECT_ROOT / "dashboard" / "model_artifacts" / "balance_regression_model.json"
 MAP_GEOJSON_PATH = PROJECT_ROOT / "data" / "map" / "distritos_inec.geojson"
 MAP_PREPARED_GEOJSON_PATH = PROJECT_ROOT / "data" / "map" / "distritos_inec_prepared.geojson"
 MAP_VALUES_PATH = PROJECT_ROOT / "data" / "map" / "poblacion_distritos_inec_2023.json"
@@ -35,6 +27,20 @@ COLOR_MUTED = "#526070"
 COLOR_YES = "#19a0a1"
 COLOR_NO = "#d95f59"
 logger = logging.getLogger(__name__)
+
+NUMERIC_FEATURES = ["age", "day", "duration", "campaign", "pdays", "previous"]
+CATEGORICAL_FEATURES = [
+    "job",
+    "marital",
+    "education",
+    "default",
+    "housing",
+    "loan",
+    "contact",
+    "month",
+    "poutcome",
+]
+MISSING_CATEGORY = "__missing__"
 
 DEFAULT_MODEL_METRICS = {
     "r2_train": 0.513998,
@@ -66,65 +72,100 @@ def categorical_options(column: str) -> list[dict[str, str]]:
     return [{"label": clean_label(value), "value": value} for value in sorted(values)]
 
 
-def make_preprocessor(features: pd.DataFrame) -> ColumnTransformer:
-    numeric_cols = features.select_dtypes(include=np.number).columns.tolist()
-    categorical_cols = features.select_dtypes(include="object").columns.tolist()
-
-    numeric_transformer = Pipeline(
-        steps=[
-            ("imputer", SimpleImputer(strategy="median")),
-            ("scaler", StandardScaler()),
-        ]
-    )
-    categorical_transformer = Pipeline(
-        steps=[
-            ("imputer", SimpleImputer(strategy="most_frequent")),
-            ("onehot", OneHotEncoder(handle_unknown="ignore")),
-        ]
-    )
-
-    return ColumnTransformer(
-        transformers=[
-            ("num", numeric_transformer, numeric_cols),
-            ("cat", categorical_transformer, categorical_cols),
-        ]
-    )
+def normalize_category(value) -> str:
+    if value is None or pd.isna(value) or value == "unknown":
+        return MISSING_CATEGORY
+    return str(value)
 
 
-def build_regression_model():
+def _build_feature_matrix(df: pd.DataFrame, artifact: dict) -> np.ndarray:
+    columns = [np.ones(len(df), dtype=float)]
+
+    for column, settings in artifact["numeric"].items():
+        values = pd.to_numeric(df[column], errors="coerce").fillna(settings["median"]).to_numpy(dtype=float)
+        columns.append((values - settings["mean"]) / settings["scale"])
+
+    for column, settings in artifact["categorical"].items():
+        values = df[column].map(normalize_category)
+        for category in settings["categories"]:
+            columns.append((values == category).astype(float).to_numpy())
+
+    return np.column_stack(columns)
+
+
+def build_regression_model(alpha: float = 100.0):
     df = load_modeling_data()
     target = "balance"
-    features = df.drop(columns=[target, "y"])
-    y = df[target]
+    rng = np.random.default_rng(42)
+    indices = rng.permutation(len(df))
+    test_count = int(len(df) * 0.2)
+    test_idx = indices[:test_count]
+    train_idx = indices[test_count:]
+    train_df = df.iloc[train_idx].copy()
+    test_df = df.iloc[test_idx].copy()
 
-    x_train, x_test, y_train, y_test = train_test_split(
-        features, y, test_size=0.2, random_state=42
-    )
-
-    model = Pipeline(
-        steps=[
-            ("preprocessor", make_preprocessor(features)),
-            (
-                "model",
-                RandomForestRegressor(
-                    n_estimators=120,
-                    random_state=42,
-                    n_jobs=-1,
-                    min_samples_leaf=3,
-                ),
-            ),
-        ]
-    )
-    model.fit(x_train, y_train)
-    pred_train = model.predict(x_train)
-    pred_test = model.predict(x_test)
-    metrics = {
-        "r2_train": r2_score(y_train, pred_train),
-        "r2_test": r2_score(y_test, pred_test),
-        "mae_test": mean_absolute_error(y_test, pred_test),
-        "rmse_test": float(np.sqrt(mean_squared_error(y_test, pred_test))),
+    artifact = {
+        "model_type": "compact_ridge_linear_balance_v1",
+        "target": target,
+        "numeric": {},
+        "categorical": {},
+        "feature_order": ["intercept"],
+        "metrics": {},
     }
-    return model, metrics
+
+    for column in NUMERIC_FEATURES:
+        values = pd.to_numeric(train_df[column], errors="coerce")
+        median = float(values.median())
+        filled = values.fillna(median)
+        mean = float(filled.mean())
+        scale = float(filled.std()) or 1.0
+        artifact["numeric"][column] = {
+            "median": median,
+            "mean": mean,
+            "scale": scale,
+            "coefficient": 0.0,
+        }
+        artifact["feature_order"].append(f"num:{column}")
+
+    for column in CATEGORICAL_FEATURES:
+        categories = sorted(train_df[column].map(normalize_category).unique().tolist())
+        artifact["categorical"][column] = {
+            "categories": categories,
+            "effects": {category: 0.0 for category in categories},
+        }
+        artifact["feature_order"].extend([f"cat:{column}:{category}" for category in categories])
+
+    x_train = _build_feature_matrix(train_df, artifact)
+    y_train = train_df[target].to_numpy(dtype=float)
+    penalty = np.eye(x_train.shape[1]) * alpha
+    penalty[0, 0] = 0.0
+    coefficients = np.linalg.solve(x_train.T @ x_train + penalty, x_train.T @ y_train)
+
+    artifact["intercept"] = float(coefficients[0])
+    position = 1
+    for column in NUMERIC_FEATURES:
+        artifact["numeric"][column]["coefficient"] = float(coefficients[position])
+        position += 1
+    for column in CATEGORICAL_FEATURES:
+        for category in artifact["categorical"][column]["categories"]:
+            artifact["categorical"][column]["effects"][category] = float(coefficients[position])
+            position += 1
+
+    pred_train = _build_feature_matrix(train_df, artifact) @ coefficients
+    pred_test = _build_feature_matrix(test_df, artifact) @ coefficients
+    y_test = test_df[target].to_numpy(dtype=float)
+    ss_res_train = float(np.sum((y_train - pred_train) ** 2))
+    ss_tot_train = float(np.sum((y_train - y_train.mean()) ** 2))
+    ss_res_test = float(np.sum((y_test - pred_test) ** 2))
+    ss_tot_test = float(np.sum((y_test - y_test.mean()) ** 2))
+    metrics = {
+        "r2_train": 1 - ss_res_train / ss_tot_train if ss_tot_train else 0.0,
+        "r2_test": 1 - ss_res_test / ss_tot_test if ss_tot_test else 0.0,
+        "mae_test": float(np.mean(np.abs(y_test - pred_test))),
+        "rmse_test": float(np.sqrt(np.mean((y_test - pred_test) ** 2))),
+    }
+    artifact["metrics"] = metrics
+    return artifact, metrics
 
 
 @lru_cache(maxsize=1)
@@ -135,11 +176,32 @@ def load_regression_model():
             "Genere el artefacto con: python -m dashboard.build_model_artifact"
         )
 
-    artifact = joblib.load(MODEL_ARTIFACT_PATH)
-    if isinstance(artifact, dict) and "model" in artifact:
-        return artifact["model"], artifact.get("metrics", DEFAULT_MODEL_METRICS)
+    artifact = json.loads(MODEL_ARTIFACT_PATH.read_text(encoding="utf-8"))
+    return artifact, artifact.get("metrics", DEFAULT_MODEL_METRICS)
 
-    return artifact, DEFAULT_MODEL_METRICS
+
+def predict_regression_model(artifact: dict, values: dict) -> float:
+    prediction = float(artifact["intercept"])
+
+    for column, settings in artifact["numeric"].items():
+        raw_value = values.get(column)
+        value = settings["median"] if raw_value is None else float(raw_value)
+        prediction += ((value - settings["mean"]) / settings["scale"]) * settings["coefficient"]
+
+    for column, settings in artifact["categorical"].items():
+        category = normalize_category(values.get(column))
+        prediction += settings["effects"].get(category, 0.0)
+
+    return prediction
+
+
+def load_model_metrics() -> dict:
+    try:
+        _, metrics = load_regression_model()
+    except Exception as exc:
+        logger.warning("No se pudieron cargar las metricas del modelo de balance: %s", exc)
+        return DEFAULT_MODEL_METRICS
+    return metrics
 
 
 @lru_cache(maxsize=1)
@@ -366,7 +428,7 @@ def selected_district_text(click_data, variable_id: int = 179):
 
 
 bank_df = load_bank_data()
-model_metrics = DEFAULT_MODEL_METRICS
+model_metrics = load_model_metrics()
 geojson_map, district_table, geob_meta, default_map_variable = load_map_data(179)
 map_variable_map, map_variable_options = load_map_variables()
 
@@ -491,7 +553,7 @@ app.layout = html.Div(
                                 html.Button("Predecir balance", id="predict-button", n_clicks=0, className="predict-button"),
                                 html.Div(id="prediction-output", className="prediction-result"),
                                 html.P(
-                                    f"Modelo usado: Random Forest Regressor. R2 test: {model_metrics['r2_test']:.3f}; MAE test: {model_metrics['mae_test']:,.0f}. "
+                                    f"Modelo usado: regresion compacta preentrenada. R2 test: {model_metrics['r2_test']:.3f}; MAE test: {model_metrics['mae_test']:,.0f}. "
                                     "El notebook mostró desempeño limitado para esta variable, por lo que la predicción debe interpretarse como referencia exploratoria.",
                                     className="predictor-note",
                                 ),
@@ -660,30 +722,26 @@ def predict_balance(n_clicks, age, job, marital, education, default, housing, lo
     if any(value is None for value in [age, day, duration, campaign, pdays, previous]):
         return "Complete los valores numericos para calcular el balance."
 
-    instance = pd.DataFrame(
-        [
-            {
-                "age": age,
-                "job": np.nan if job == "unknown" else job,
-                "marital": marital,
-                "education": np.nan if education == "unknown" else education,
-                "default": default,
-                "housing": housing,
-                "loan": loan,
-                "contact": np.nan if contact == "unknown" else contact,
-                "day": day,
-                "month": month,
-                "duration": duration,
-                "campaign": campaign,
-                "pdays": pdays,
-                "previous": previous,
-                "poutcome": np.nan if poutcome == "unknown" else poutcome,
-            }
-        ]
-    )
+    instance = {
+        "age": age,
+        "job": job,
+        "marital": marital,
+        "education": education,
+        "default": default,
+        "housing": housing,
+        "loan": loan,
+        "contact": contact,
+        "day": day,
+        "month": month,
+        "duration": duration,
+        "campaign": campaign,
+        "pdays": pdays,
+        "previous": previous,
+        "poutcome": poutcome,
+    }
     try:
         model, _ = load_regression_model()
-        prediction = float(model.predict(instance)[0])
+        prediction = predict_regression_model(model, instance)
     except Exception:
         logger.exception("No se pudo calcular la prediccion de balance")
         return "No se pudo calcular el balance en este momento. Revise los logs del servidor."

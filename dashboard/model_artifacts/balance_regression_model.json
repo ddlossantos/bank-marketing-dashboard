@@ -1,0 +1,246 @@
+{
+  "model_type": "compact_ridge_linear_balance_v1",
+  "target": "balance",
+  "numeric": {
+    "age": {
+      "median": 39.0,
+      "mean": 40.974038541292266,
+      "scale": 10.632123179459677,
+      "coefficient": 280.41241531246015
+    },
+    "day": {
+      "median": 16.0,
+      "mean": 15.815311454560534,
+      "scale": 8.334397654632962,
+      "coefficient": 56.71074479370295
+    },
+    "duration": {
+      "median": 180.0,
+      "mean": 257.34888993336835,
+      "scale": 255.72468037564826,
+      "coefficient": 61.465654642426294
+    },
+    "campaign": {
+      "median": 2.0,
+      "mean": 2.766982775304819,
+      "scale": 3.122517287749508,
+      "coefficient": -5.417377492954857
+    },
+    "pdays": {
+      "median": -1.0,
+      "mean": 40.03124222400398,
+      "scale": 99.85613139857229,
+      "coefficient": -58.73228088079142
+    },
+    "previous": {
+      "median": 0.0,
+      "mean": 0.5731150985650695,
+      "scale": 2.3559288671990104,
+      "coefficient": 0.1987390956498941
+    }
+  },
+  "categorical": {
+    "job": {
+      "categories": [
+        "__missing__",
+        "admin.",
+        "blue-collar",
+        "entrepreneur",
+        "housemaid",
+        "management",
+        "retired",
+        "self-employed",
+        "services",
+        "student",
+        "technician",
+        "unemployed"
+      ],
+      "effects": {
+        "__missing__": 51.263555861596096,
+        "admin.": -127.58553115217049,
+        "blue-collar": -88.22814597711177,
+        "entrepreneur": -8.577729376277992,
+        "housemaid": -65.77682399005509,
+        "management": 177.7892139062874,
+        "retired": 36.25543594247363,
+        "self-employed": 74.2723168265871,
+        "services": -162.95248346842544,
+        "student": 104.8385599522791,
+        "technician": -44.340478261700525,
+        "unemployed": 53.04210973648181
+      }
+    },
+    "marital": {
+      "categories": [
+        "divorced",
+        "married",
+        "single"
+      ],
+      "effects": {
+        "divorced": -215.92684503796642,
+        "married": 71.92595990897277,
+        "single": 144.00088512897537
+      }
+    },
+    "education": {
+      "categories": [
+        "__missing__",
+        "primary",
+        "secondary",
+        "tertiary"
+      ],
+      "effects": {
+        "__missing__": -37.43797093579761,
+        "primary": -171.37541852238957,
+        "secondary": -69.2717828119613,
+        "tertiary": 278.08517227008275
+      }
+    },
+    "default": {
+      "categories": [
+        "no",
+        "yes"
+      ],
+      "effects": {
+        "no": 604.1681426504127,
+        "yes": -604.1681426503792
+      }
+    },
+    "housing": {
+      "categories": [
+        "no",
+        "yes"
+      ],
+      "effects": {
+        "no": 95.1470880584143,
+        "yes": -95.14708805842132
+      }
+    },
+    "loan": {
+      "categories": [
+        "no",
+        "yes"
+      ],
+      "effects": {
+        "no": 257.59383509664747,
+        "yes": -257.59383509668817
+      }
+    },
+    "contact": {
+      "categories": [
+        "__missing__",
+        "cellular",
+        "telephone"
+      ],
+      "effects": {
+        "__missing__": -146.78405137427367,
+        "cellular": -45.25984293228262,
+        "telephone": 192.04389430660154
+      }
+    },
+    "month": {
+      "categories": [
+        "apr",
+        "aug",
+        "dec",
+        "feb",
+        "jan",
+        "jul",
+        "jun",
+        "mar",
+        "may",
+        "nov",
+        "oct",
+        "sep"
+      ],
+      "effects": {
+        "apr": 85.90998716035911,
+        "aug": -358.25719111143746,
+        "dec": 342.9974583778574,
+        "feb": -265.5252258806942,
+        "jan": -671.2817619223891,
+        "jul": -539.4128630199758,
+        "jun": 201.58311763088318,
+        "mar": 72.93822028762888,
+        "may": -234.75336491631703,
+        "nov": 940.603519313295,
+        "oct": 241.50168833484526,
+        "sep": 183.69641574585722
+      }
+    },
+    "poutcome": {
+      "categories": [
+        "__missing__",
+        "failure",
+        "other",
+        "success"
+      ],
+      "effects": {
+        "__missing__": -164.1824768681276,
+        "failure": -43.649185184775156,
+        "other": 47.69409924155635,
+        "success": 160.137562811235
+      }
+    }
+  },
+  "feature_order": [
+    "intercept",
+    "num:age",
+    "num:day",
+    "num:duration",
+    "num:campaign",
+    "num:pdays",
+    "num:previous",
+    "cat:job:__missing__",
+    "cat:job:admin.",
+    "cat:job:blue-collar",
+    "cat:job:entrepreneur",
+    "cat:job:housemaid",
+    "cat:job:management",
+    "cat:job:retired",
+    "cat:job:self-employed",
+    "cat:job:services",
+    "cat:job:student",
+    "cat:job:technician",
+    "cat:job:unemployed",
+    "cat:marital:divorced",
+    "cat:marital:married",
+    "cat:marital:single",
+    "cat:education:__missing__",
+    "cat:education:primary",
+    "cat:education:secondary",
+    "cat:education:tertiary",
+    "cat:default:no",
+    "cat:default:yes",
+    "cat:housing:no",
+    "cat:housing:yes",
+    "cat:loan:no",
+    "cat:loan:yes",
+    "cat:contact:__missing__",
+    "cat:contact:cellular",
+    "cat:contact:telephone",
+    "cat:month:apr",
+    "cat:month:aug",
+    "cat:month:dec",
+    "cat:month:feb",
+    "cat:month:jan",
+    "cat:month:jul",
+    "cat:month:jun",
+    "cat:month:mar",
+    "cat:month:may",
+    "cat:month:nov",
+    "cat:month:oct",
+    "cat:month:sep",
+    "cat:poutcome:__missing__",
+    "cat:poutcome:failure",
+    "cat:poutcome:other",
+    "cat:poutcome:success"
+  ],
+  "metrics": {
+    "r2_train": 0.051663098429414855,
+    "r2_test": 0.042118770498476676,
+    "mae_test": 1476.0868711800972,
+    "rmse_test": 2859.596823242529
+  },
+  "intercept": 864.751758931256
+}

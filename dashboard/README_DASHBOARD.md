@@ -28,7 +28,7 @@ http://127.0.0.1:8050
 La app carga un modelo preentrenado desde:
 
 ```text
-dashboard/model_artifacts/balance_regression_model.joblib
+dashboard/model_artifacts/balance_regression_model.json
 ```
 
 Si cambian los datos o el entrenamiento, regenerar el artefacto con:
@@ -54,7 +54,7 @@ python -m dashboard.build_model_artifact
   - Prestamo.
   - Slider del top de distritos.
 - Control interactivo de regresion:
-  - Usa Random Forest Regressor para estimar `balance`.
+  - Usa un modelo compacto preentrenado para estimar `balance`.
 - Mapa interactivo:
   - Nivel geografico: distritos de Panama.
   - Variables seleccionables del INEC MAPI:

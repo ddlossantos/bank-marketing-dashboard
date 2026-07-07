@@ -1,0 +1,92 @@
+[
+  {
+    "id": 179,
+    "nombre": "Población total",
+    "unidad_medida": "personas",
+    "is_porcentaje": false,
+    "fuente": "Censos de Población y Vivienda Década 2020",
+    "anio_referencia": 2023,
+    "definicion": "Número total de personas en el corregimiento."
+  },
+  {
+    "id": 82,
+    "nombre": "Porcentaje de la población menor de 15 años",
+    "unidad_medida": "% de la población",
+    "is_porcentaje": true,
+    "fuente": "Censos de Población y Vivienda Década 2020",
+    "anio_referencia": 2023,
+    "definicion": "Porcentaje de la población menor de 15 años."
+  },
+  {
+    "id": 83,
+    "nombre": "Porcentaje de la población de 15 a 64 años",
+    "unidad_medida": "% de la población",
+    "is_porcentaje": true,
+    "fuente": "Censos de Población y Vivienda Década 2020",
+    "anio_referencia": 2023,
+    "definicion": "Porcentaje de la población en el rango de edad de 15 a 64 años."
+  },
+  {
+    "id": 84,
+    "nombre": "Porcentaje de la población de 65 y más años de edad",
+    "unidad_medida": "% de la población",
+    "is_porcentaje": true,
+    "fuente": "Censos de Población y Vivienda Década 2020",
+    "anio_referencia": 2023,
+    "definicion": "Porcentaje de la población de 65 y más años "
+  },
+  {
+    "id": 86,
+    "nombre": "Porcentaje de la población que no tiene seguro social",
+    "unidad_medida": "% de la población",
+    "is_porcentaje": true,
+    "fuente": "Censos de Población y Vivienda Década 2020",
+    "anio_referencia": 2023,
+    "definicion": "Porcentaje de personas sin seguro social."
+  },
+  {
+    "id": 91,
+    "nombre": "Porcentaje de analfabetas (población de 10 y más años de edad)",
+    "unidad_medida": "% de la población",
+    "is_porcentaje": true,
+    "fuente": "Censos de Población y Vivienda Década 2020",
+    "anio_referencia": 2023,
+    "definicion": "Porcentaje de personas de 10 años y más que no saben leer ni escribir."
+  },
+  {
+    "id": 92,
+    "nombre": "Porcentaje de desocupados (población de 10 y más años de edad)",
+    "unidad_medida": "% de la población",
+    "is_porcentaje": true,
+    "fuente": "Encuesta de Mercado Laboral 2024",
+    "anio_referencia": 2024,
+    "definicion": "Porcentaje de personas de 10 años y más que están desocupadas."
+  },
+  {
+    "id": 94,
+    "nombre": "Mediana del ingreso mensual del hogar",
+    "unidad_medida": "dólares",
+    "is_porcentaje": true,
+    "fuente": "Censos de Población y Vivienda Década 2020",
+    "anio_referencia": 2023,
+    "definicion": "Mediana del ingreso mensual por hogar."
+  },
+  {
+    "id": 90,
+    "nombre": "Promedio de años aprobados (grado más alto aprobado)",
+    "unidad_medida": "años",
+    "is_porcentaje": true,
+    "fuente": "Censos de Población y Vivienda Década 2020",
+    "anio_referencia": 2023,
+    "definicion": "Promedio de años de escolaridad aprobados por la población."
+  },
+  {
+    "id": 146,
+    "nombre": "Acceso a Internet (porcentaje)",
+    "unidad_medida": "% de la población",
+    "is_porcentaje": true,
+    "fuente": "Censos de Población y Vivienda Década 2020",
+    "anio_referencia": 2023,
+    "definicion": "Porcentaje de personas con acceso a internet."
+  }
+]

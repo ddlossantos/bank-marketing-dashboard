@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.venv/
+venv/
+env/
+.env
+
+# Local render/build artifacts
+*.log
+
+# Raw downloads kept locally but not needed for deployment
+data/*.zip
+data/raw_uci/
+data/map/*.gz
+data/map/geoboundaries_pan_adm2.geojson
